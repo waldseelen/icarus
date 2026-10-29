@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "icarus"
+version = "1.0.0"
+description = "Universal Linux driver and configuration utility for Gamepower Icarus (Sinowealth 258a:0027)"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "Bugra" }]
+keywords = ["gaming-mouse", "gamepower", "sinowealth", "hidraw", "linux"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: System :: Hardware :: Hardware Drivers",
+]
+
+[project.scripts]
+icarus = "icarus.cli:main"
+icarusctl = "icarus.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["icarus*"]

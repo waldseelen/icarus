@@ -1,0 +1,16 @@
+Source: icarusctl
+Section: utils
+Priority: optional
+Maintainer: Bugra <user@local>
+Build-Depends: debhelper-compat (= 13), dh-python, python3-all, python3-setuptools
+Standards-Version: 4.6.2
+Homepage: https://github.com/local/icarusctl
+
+Package: icarusctl
+Architecture: all
+Depends: ${misc:Depends}, ${python3:Depends}, python3 (>= 3.8)
+Description: Cross-distro configuration utility for Gamepower Icarus Gaming Mouse
+ Universal, zero-external-dependency Linux userspace driver and CLI utility
+ for configuring the Gamepower Icarus (Sinowealth 258a:0027) gaming mouse.
+ Exposes DPI stages, polling rate, RGB lighting, onboard macros, and
+ lift-off distance via low-level /dev/hidraw ioctls.

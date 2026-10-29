@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gamepower Icarus — Device Control Studio</title>
+  <link rel="icon" type="image/png" href="/assets/icon.png">
+  <link rel="stylesheet" href="/assets/style.css">
+  <link rel="stylesheet" href="/assets/macro.css">
+</head>
+<body>
+  <header role="banner">
+    <div class="brand">
+      <img src="/assets/icon.png" alt="Gamepower Icarus" width="22" height="22">
+      <h1>GAMEPOWER ICARUS</h1>
+      <span class="brand-sub">PMW3325 Hardware Controller</span>
+    </div>
+
+    <div class="header-center">
+      <div class="device-badge" id="device-badge" role="status" aria-live="polite">
+        <span class="dot" aria-hidden="true"></span>
+        <span id="device-status-text">Detecting Mouse...</span>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <div class="profile-pills" role="radiogroup" aria-label="Active Profile">
+        <button type="button" role="radio" aria-checked="true" class="profile-btn active" data-profile="1" id="prof-btn-1">Profile 1</button>
+        <button type="button" role="radio" aria-checked="false" class="profile-btn" data-profile="2" id="prof-btn-2">Profile 2</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="main-container">
+    <!-- Bento Left: Navigation Rail -->
+    <nav role="tablist" aria-label="Mouse Controls" class="nav-rail">
+      <button type="button" role="tab" class="nav-tab active" id="tab-btn-buttons" data-tab="tab-buttons" aria-selected="true" aria-controls="tab-buttons" tabindex="0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><rect x="6" y="3" width="12" height="18" rx="6"/><line x1="12" y1="3" x2="12" y2="9"/></svg>
+        <span>Buttons</span>
+      </button>
+      <button type="button" role="tab" class="nav-tab" id="tab-btn-dpi" data-tab="tab-dpi" aria-selected="false" aria-controls="tab-dpi" tabindex="-1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>DPI</span>
+      </button>
+      <button type="button" role="tab" class="nav-tab" id="tab-btn-lighting" data-tab="tab-lighting" aria-selected="false" aria-controls="tab-lighting" tabindex="-1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.2" y1="4.2" x2="5.6" y2="5.6"/><line x1="18.4" y1="18.4" x2="19.8" y2="19.8"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+        <span>Lighting</span>
+      </button>
+      <button type="button" role="tab" class="nav-tab" id="tab-btn-macros" data-tab="tab-macros" aria-selected="false" aria-controls="tab-macros" tabindex="-1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        <span>Macros</span>
+      </button>
+      <button type="button" role="tab" class="nav-tab" id="tab-btn-performance" data-tab="tab-performance" aria-selected="false" aria-controls="tab-performance" tabindex="-1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        <span>Sensor</span>
+      </button>
+      <button type="button" role="tab" class="nav-tab" id="tab-btn-config" data-tab="tab-config" aria-selected="false" aria-controls="tab-config" tabindex="-1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span>Config</span>
+      </button>
+    </nav>
+
+    <!-- Bento Center: Interactive Mouse Preview Stage -->
+    <section class="viewport-center" aria-label="Interactive Hardware Preview">
+      <div class="mouse-stage">
+        <div class="mouse-canvas" id="mouse-canvas-wrapper">
+          <img class="mouse-body" src="/assets/mouse_nr.png" alt="Gamepower Icarus Physical Layout" width="238" height="437">
+          <div id="mouse-pins-container" aria-label="Mouse Pin Badges"></div>
+        </div>
+        <div class="mouse-meta-badge">
+          <span class="mono-text">SINOWEALTH 258A:0027</span>
+          <span class="mono-text">9 HARDWARE PINS</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bento Right: Dedicated Workspace Panel (Single Localized Scroll) -->
+    <main class="content-panel" id="main-content" tabindex="-1">
+
+      <!-- Tab 1: Buttons -->
+      <section role="tabpanel" id="tab-buttons" aria-labelledby="tab-btn-buttons" tabindex="0" class="tab-pane active">
+        <div class="pane-header">
+          <div>
+            <h2 class="pane-title">Physical Button Alignment</h2>
+            <p class="pane-desc">Hardware pins K1 through K9 calibrated to physical mouse geometry. Click pin badge or remap action.</p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Hardware Switch Matrix (K1..K9)</span>
+            <span class="badge-subtle">K4/K5 Physical Swap Protected</span>
+          </div>
+          <div id="buttons-list" class="button-list-grid" role="list" aria-label="Configured Buttons"></div>
+        </div>
+      </section>
+
+      <!-- Tab 2: DPI Stages -->
+      <section role="tabpanel" id="tab-dpi" aria-labelledby="tab-btn-dpi" tabindex="0" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h2 class="pane-title">PixArt PMW3325 DPI Stages</h2>
+            <p class="pane-desc">57 discrete optical sensor steps (400..10,000 DPI). Radio selects active hardware stage.</p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="info-banner" style="margin-bottom: 14px;">
+            <span class="badge-subtle">BÖLGE 1</span>
+            <span>Tablodaki renkler yalnızca <strong>Scroll Tekerleği &amp; DPI Göstergesi</strong> LED'ini belirler.</span>
+          </div>
+          <div class="card-header">
+            <span class="card-title">8 Configurable Hardware Stages</span>
+            <span class="badge-subtle mono-text">PMW3325 Magnetic Snap</span>
+          </div>
+          <div class="dpi-table-header">
+            <span class="th-active">Active</span>
+            <span class="th-enable">Stage</span>
+            <span class="th-slider">Sensitivity (400 - 10,000 DPI)</span>
+            <span class="th-val">Value</span>
+            <span class="th-color">Color</span>
+          </div>
+          <div id="dpi-stages-list" class="dpi-table-body" role="region" aria-label="DPI Stage List"></div>
+        </div>
+      </section>
+
+      <!-- Tab 3: Lighting (RGB) -->
+      <section role="tabpanel" id="tab-lighting" aria-labelledby="tab-btn-lighting" tabindex="0" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h2 class="pane-title">RGB Illumination Studio</h2>
+            <p class="pane-desc">All 11 hardware effects with dedicated register control in Report 0x04.</p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="info-banner" style="margin-bottom: 14px;">
+            <span class="badge-subtle">BÖLGE 2</span>
+            <span>Bu sekmedeki renkler ve efektler farenin <strong>gövde kenar şeridini</strong> kontrol eder.</span>
+          </div>
+          <div class="card-header">
+            <span class="card-title">Lighting Mode & Registers</span>
+          </div>
+
+          <div class="form-group">
+            <label for="rgb-effect-select">Active Hardware Effect</label>
+            <select id="rgb-effect-select" class="form-select" aria-label="Select RGB Mode"></select>
+            <p id="rainbow-effect-notice" style="font-size:11px; color:var(--text-subtle); margin-top:4px; display:none;">
+              ℹ Streaming, Neon ve Wave efektleri otomatik gökkuşağı desenidir; özel renk seçimi Steady, Breathing, Colorful Steady ve Flicker modlarında kullanılır.
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label for="channel-order-select">LED Channel Calibration / Renk Dizilimi</label>
+            <select id="channel-order-select" class="form-select" aria-label="LED Channel Order">
+              <option value="RGB">RGB (Standart - Kırmızı/Yeşil/Mavi)</option>
+              <option value="GRB">GRB (Yeşil/Kırmızı/Mavi - Kırmızı seçince Yeşil yanıyorsa)</option>
+              <option value="BGR">BGR (Mavi/Yeşil/Kırmızı - Kırmızı seçince Mavi yanıyorsa)</option>
+            </select>
+            <p style="font-size:11px; color:var(--text-subtle); margin-top:4px;">
+              Donanım LED pin sırasını düzeltir. Seçtiğiniz renk farede farklı yanıyorsa GRB veya BGR seçin.
+            </p>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group" id="grp-rgb-brightness">
+              <div class="label-with-value">
+                <label for="rgb-brightness">Brightness</label>
+                <span class="mono-badge"><span id="rgb-bri-val">4</span> / 4</span>
+              </div>
+              <input type="range" id="rgb-brightness" min="1" max="4" value="4" class="form-range" aria-label="RGB Brightness">
+            </div>
+
+            <div class="form-group" id="grp-rgb-speed">
+              <div class="label-with-value">
+                <label for="rgb-speed">Animation Speed</label>
+                <span class="mono-badge"><span id="rgb-spd-val">2</span> / 3</span>
+              </div>
+              <input type="range" id="rgb-speed" min="1" max="3" value="2" class="form-range" aria-label="Animation Speed">
+            </div>
+          </div>
+
+          <div class="form-group" id="grp-rgb-direction">
+            <label for="rgb-direction-select">Streaming Direction</label>
+            <select id="rgb-direction-select" class="form-select" aria-label="Streaming Direction">
+              <option value="0">Forward / Clockwise (Default)</option>
+              <option value="1">Backward / Counter-Clockwise</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="grp-rgb-static-color">
+            <label for="rgb-static-color">Static Illumination Color</label>
+            <div class="color-picker-row">
+              <input type="color" id="rgb-static-color" value="#ff0000" class="form-color" aria-label="Static Illumination Color">
+              <span id="rgb-static-hex" class="mono-text">#ff0000</span>
+            </div>
+          </div>
+
+          <div class="form-group" id="grp-rgb-breathing-colors" style="display:none">
+            <label>7-Color Breathing Cycle</label>
+            <div class="swatch-grid" id="breathing-swatches" role="group" aria-label="7-Color Breathing Swatches"></div>
+          </div>
+
+          <div class="form-group" id="grp-rgb-zone-colors" style="display:none">
+            <label>8-Zone Independent Matrix</label>
+            <div class="swatch-grid" id="zone-swatches" role="group" aria-label="8-Zone Color Matrix"></div>
+          </div>
+
+          <div class="form-group" id="grp-rgb-flicker-colors" style="display:none">
+            <label>2-Color Alternating Flicker</label>
+            <div class="swatch-grid" id="flicker-swatches" role="group" aria-label="2-Color Flicker Swatches"></div>
+          </div>
+
+          <div class="info-banner" id="grp-rgb-off-notice" style="display:none">
+            <span class="badge-subtle">STANDBY</span>
+            <span>RGB illumination disabled. Mouse operating in stealth low-power mode.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab 4: Macros -->
+      <section role="tabpanel" id="tab-macros" aria-labelledby="tab-btn-macros" tabindex="0" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h2 class="pane-title">Hardware Macro Studio</h2>
+            <p class="pane-desc">16 onboard flash slots (up to 168 events each), 12-bit delays (1..4095ms), live recording.</p>
+          </div>
+        </div>
+
+        <div class="macro-layout-bento">
+          <!-- Left: 16 Slots -->
+          <div class="macro-slots-sidebar" role="region" aria-label="Macro Slots">
+            <div class="sidebar-header">
+              <span class="card-title">Hardware Slots</span>
+              <span class="badge-subtle mono-text">16 SLOTS</span>
+            </div>
+            <div class="macro-slot-list" id="macro-slot-container" role="list"></div>
+          </div>
+
+          <!-- Right: Macro Inspector & Timeline -->
+          <div class="macro-workspace-card">
+            <div class="macro-toolbar">
+              <div class="macro-title-field">
+                <label for="macro-title-input" class="visually-hidden">Macro Name</label>
+                <input type="text" id="macro-title-input" placeholder="Macro Name" class="form-input" aria-label="Macro Name">
+              </div>
+              <div class="macro-action-btns">
+                <button type="button" class="btn-record" id="btn-record-macro" aria-label="Record Keystrokes">
+                  <span class="rec-dot" aria-hidden="true"></span>
+                  <span id="rec-btn-text">Record</span>
+                </button>
+                <button type="button" class="btn-secondary" id="btn-add-event" aria-label="Add Step">
+                  <span>+ Step</span>
+                </button>
+                <button type="button" class="btn-primary" id="btn-flash-macro" aria-label="Save and Flash Macro">
+                  <span>Save & Flash</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="macro-settings-row">
+              <div class="form-group flex-1">
+                <label>Loop Execution Mode</label>
+                <div class="radio-group" id="macro-loop-group" role="radiogroup" aria-label="Macro Loop Mode">
+                  <button type="button" role="radio" aria-checked="true" class="radio-pill selected" data-mode="REPEAT_COUNT">Repeat N Times</button>
+                  <button type="button" role="radio" aria-checked="false" class="radio-pill" data-mode="UNTIL_RELEASE">While Held</button>
+                  <button type="button" role="radio" aria-checked="false" class="radio-pill" data-mode="UNTIL_ANY_KEY">Toggle (Until Key)</button>
+                </div>
+              </div>
+
+              <div class="form-group" id="grp-repeat-count">
+                <label for="macro-repeat-count">Repeat Count (1..255)</label>
+                <input type="number" id="macro-repeat-count" min="1" max="255" value="1" class="form-input form-number mono-text" aria-label="Repeat Count">
+              </div>
+            </div>
+
+            <div class="timeline-wrapper">
+              <div class="timeline-header">
+                <span>Timeline Events</span>
+                <span id="timeline-count-badge" class="badge-subtle mono-text">0 / 168</span>
+              </div>
+              <div class="timeline-container" id="timeline-events-list" role="list" aria-label="Timeline Events"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab 5: Sensor / Performance -->
+      <section role="tabpanel" id="tab-performance" aria-labelledby="tab-btn-performance" tabindex="0" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h2 class="pane-title">Sensor & Polling Rate</h2>
+            <p class="pane-desc">Adjust USB interrupt frequency and optical lift-off distance threshold.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">USB Report Frequency</span>
+            <span class="badge-subtle mono-text">Hardware Polling</span>
+          </div>
+          <div class="radio-group" id="polling-rate-group" role="radiogroup" aria-label="USB Polling Rate">
+            <button type="button" role="radio" aria-checked="false" class="radio-pill" data-hz="125">
+              <span class="pill-title">125 Hz</span>
+              <span class="pill-meta mono-text">8.0 ms</span>
+            </button>
+            <button type="button" role="radio" aria-checked="false" class="radio-pill" data-hz="250">
+              <span class="pill-title">250 Hz</span>
+              <span class="pill-meta mono-text">4.0 ms</span>
+            </button>
+            <button type="button" role="radio" aria-checked="false" class="radio-pill" data-hz="500">
+              <span class="pill-title">500 Hz</span>
+              <span class="pill-meta mono-text">2.0 ms</span>
+            </button>
+            <button type="button" role="radio" aria-checked="true" class="radio-pill selected" data-hz="1000">
+              <span class="pill-title">1000 Hz</span>
+              <span class="pill-meta mono-text">1.0 ms</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Optical Lift-Off Distance (LOD)</span>
+            <span class="badge-subtle mono-text">PMW3325 Calibration</span>
+          </div>
+          <div class="radio-group" id="lod-group" role="radiogroup" aria-label="Lift-Off Distance">
+            <button type="button" role="radio" aria-checked="true" class="radio-pill selected" data-lod="2mm">
+              <span class="pill-title">2 mm</span>
+              <span class="pill-meta">Low (Competitive)</span>
+            </button>
+            <button type="button" role="radio" aria-checked="false" class="radio-pill" data-lod="3mm">
+              <span class="pill-title">3 mm</span>
+              <span class="pill-meta">High (Thick Pad)</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Scroll Wheel Speed / Sarma Tekerlek Seviyesi</span>
+            <span class="badge-subtle mono-text">Hyprland / Omarchy</span>
+          </div>
+          <div class="form-group" style="margin-top: 12px;">
+            <div class="label-with-value">
+              <label for="scroll-factor-slider">Scroll Hız Çarpanı</label>
+              <span class="mono-badge"><span id="scroll-factor-val">1.0</span>x</span>
+            </div>
+            <input type="range" id="scroll-factor-slider" min="0.2" max="15.0" step="0.1" value="1.0" class="form-range" aria-label="Scroll Wheel Speed Factor">
+            <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-subtle); margin-top:4px;">
+              <span>0.2x (Yavaş)</span>
+              <span>1.0x (Normal)</span>
+              <span>5.0x (Hızlı)</span>
+              <span>10.0x (Turbo)</span>
+              <span>15.0x (Maks)</span>
+            </div>
+            <div class="scroll-presets" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
+              <button type="button" class="btn-preset" onclick="setScrollPreset(0.5)">0.5x Hassas</button>
+              <button type="button" class="btn-preset" onclick="setScrollPreset(1.0)">1.0x Normal</button>
+              <button type="button" class="btn-preset" onclick="setScrollPreset(3.0)">3.0x Hızlı</button>
+              <button type="button" class="btn-preset" onclick="setScrollPreset(6.0)">6.0x Turbo</button>
+              <button type="button" class="btn-preset" onclick="setScrollPreset(10.0)">10.0x Ultra</button>
+              <button type="button" class="btn-preset" onclick="setScrollPreset(15.0)">15.0x Maks</button>
+            </div>
+            <div style="font-size:11px; color:var(--accent); margin-top:8px;">
+              🔒 <strong>Touchpad Koruması:</strong> Laptop dokunmatik yüzeyi (syna32e4) izole edilmiştir, sadece Icarus faresi hızlanır.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab 6: Config & Backups -->
+      <section role="tabpanel" id="tab-config" aria-labelledby="tab-btn-config" tabindex="0" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h2 class="pane-title">Declarative Config & Backups</h2>
+            <p class="pane-desc">Bidirectional synchronization with ~/.config/icarus/config.json and OEM .BKM containers.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Declarative JSON Synchronization</span>
+            <span class="badge-subtle mono-text">~/.config/icarus/config.json</span>
+          </div>
+          <div class="btn-row">
+            <button type="button" class="btn-secondary" id="btn-pull-json" aria-label="Pull From Mouse">
+              <span>Pull From Mouse</span>
+            </button>
+            <button type="button" class="btn-secondary" id="btn-apply-json" aria-label="Apply Config File">
+              <span>Apply Config File</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Windows OEM .BKM Container Import</span>
+            <span class="badge-subtle mono-text">TEA-16 Cipher Decryptor</span>
+          </div>
+
+          <div class="bkm-dropzone" id="bkm-drop-target" role="button" tabindex="0" aria-label="Upload or Drag and Drop BKM file">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <p><strong>Click to browse</strong> or drag &amp; drop an OEM .BKM container</p>
+            <input type="file" id="bkm-file-input" accept=".bkm" class="visually-hidden" aria-label="BKM File Upload">
+          </div>
+
+          <div class="quick-profiles-wrap">
+            <label class="form-label-muted">Quick Backup Profiles</label>
+            <div class="bkm-btn-list" role="group" aria-label="Pre-loaded BKM files">
+              <button type="button" class="bkm-chip" data-path="/run/media/hp/SSS/WIN/App_Configs/GENERAL.bkm">GENERAL.bkm</button>
+              <button type="button" class="bkm-chip" data-path="/run/media/hp/SSS/WIN/App_Configs/LOL.bkm">LOL.bkm</button>
+              <button type="button" class="bkm-chip" data-path="/run/media/hp/SSS/WIN/App_Configs/OBSIDIAN.bkm">OBSIDIAN.bkm</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Remap Modal Dialog -->
+  <div class="modal-overlay" id="remap-modal" role="dialog" aria-modal="true" aria-labelledby="remap-modal-title" style="display:none">
+    <div class="modal-box" id="remap-modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title" id="remap-modal-title">Remap Button</h3>
+        <button type="button" class="modal-close" id="btn-close-modal" aria-label="Close dialog">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="modal-section">
+          <label for="modal-action-select">Action Category / Eylem Kategorisi</label>
+          <select id="modal-action-select" class="form-select" aria-label="Select Action Category">
+            <option value="click">Mouse Buttons & Clicks</option>
+            <option value="multimedia">Multimedia & Audio</option>
+            <option value="system">Windows & Browser Shortcuts</option>
+            <option value="special">Hardware Toggles (RGB / Polling / Mode)</option>
+            <option value="fire">Fire Key (Rapid Burst)</option>
+            <option value="sniper">Sniper / DPI Lock</option>
+            <option value="dpi">DPI Stage Switch</option>
+            <option value="macro">Onboard Macro</option>
+            <option value="key">Keyboard Combination</option>
+            <option value="disabled">Disabled</option>
+          </select>
+        </div>
+
+        <div class="modal-section" id="modal-sec-click">
+          <label for="modal-click-select">Mouse Function</label>
+          <select id="modal-click-select" class="form-select" aria-label="Select Mouse Function">
+            <option value="LEFT">Left Click (Sol Tık)</option>
+            <option value="RIGHT">Right Click (Sağ Tık)</option>
+            <option value="MIDDLE">Middle Click (Orta Tık / Tekerlek)</option>
+            <option value="FORWARD">Forward (İleri / K4)</option>
+            <option value="BACK">Back (Geri / K5)</option>
+            <option value="DOUBLE">Double Click (Donanımsal Çift Tık)</option>
+            <option value="TRIPLE">Triple Click (Donanımsal Üçlü Tık)</option>
+          </select>
+        </div>
+
+        <div class="modal-section" id="modal-sec-multimedia" style="display:none">
+          <label for="modal-media-select">Multimedia Action</label>
+          <select id="modal-media-select" class="form-select" aria-label="Select Multimedia Action">
+            <option value="play_pause">Play / Pause (Oynat / Duraklat)</option>
+            <option value="next_track">Next Track (Sonraki Şarkı)</option>
+            <option value="prev_track">Previous Track (Önceki Şarkı)</option>
+            <option value="stop">Stop (Durdur)</option>
+            <option value="volume_up">Volume Up (Ses Yükselt)</option>
+            <option value="volume_down">Volume Down (Ses Azalt)</option>
+            <option value="mute">Mute (Sesi Kapat)</option>
+            <option value="media_player">Launch Media Player (Müzik Çalar)</option>
+          </select>
+        </div>
+
+        <div class="modal-section" id="modal-sec-system" style="display:none">
+          <label for="modal-system-select">Windows & Web Action</label>
+          <select id="modal-system-select" class="form-select" aria-label="Select System Action">
+            <option value="explorer">File Explorer (Dosya Yöneticisi)</option>
+            <option value="calculator">Calculator (Hesap Makinesi)</option>
+            <option value="mail">Email Client (E-Posta)</option>
+            <option value="web_home">Web Browser Home (Ana Sayfa)</option>
+            <option value="web_search">Web Search (Web'de Ara)</option>
+            <option value="web_back">Browser Back (Tarayıcı Geri)</option>
+            <option value="web_forward">Browser Forward (Tarayıcı İleri)</option>
+            <option value="web_refresh">Browser Refresh (Sayfayı Yenile)</option>
+            <option value="web_favorites">Browser Favorites (Sık Kullanılanlar)</option>
+            <option value="web_stop">Browser Stop (Yüklemeyi Durdur)</option>
+          </select>
+        </div>
+
+        <div class="modal-section" id="modal-sec-special" style="display:none">
+          <label for="modal-special-select">Hardware Hardware Switch</label>
+          <select id="modal-special-select" class="form-select" aria-label="Select Hardware Switch">
+            <option value="profile_switch">Switch Profile / Mode (Profil Değiştir)</option>
+            <option value="polling_rate_switch">Switch Polling Rate (Hz Değiştir)</option>
+            <option value="lighting_toggle">Lighting ON / OFF (Işık Aç/Kapat)</option>
+            <option value="lighting_effect_switch">Switch Lighting Effect (Efekt Değiştir)</option>
+            <option value="lighting_color_switch">Switch Lighting Color (Renk Değiştir)</option>
+            <option value="lighting_speed_switch">Switch Lighting Speed (Hız Değiştir)</option>
+            <option value="lighting_brightness_switch">Switch Lighting Brightness (Parlaklık Değiştir)</option>
+          </select>
+        </div>
+
+        <div class="modal-section" id="modal-sec-fire" style="display:none">
+          <div class="grid-2">
+            <div>
+              <label for="modal-fire-repeat">Burst Repeat (1..255)</label>
+              <input type="number" id="modal-fire-repeat" min="1" max="255" value="3" class="form-input form-number mono-text" aria-label="Burst Repeat Count">
+            </div>
+            <div>
+              <label for="modal-fire-interval">Interval ms (5..255)</label>
+              <input type="number" id="modal-fire-interval" min="5" max="255" value="30" class="form-input form-number mono-text" aria-label="Interval Milliseconds">
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-section" id="modal-sec-sniper" style="display:none">
+          <label for="modal-sniper-stage">Lock DPI Stage While Held</label>
+          <select id="modal-sniper-stage" class="form-select" aria-label="Select Locked DPI Stage">
+            <option value="1">Stage 1 (Lowest DPI)</option>
+            <option value="2">Stage 2</option>
+            <option value="3">Stage 3</option>
+            <option value="4">Stage 4</option>
+            <option value="5">Stage 5</option>
+            <option value="6">Stage 6</option>
+            <option value="7">Stage 7</option>
+            <option value="8">Stage 8</option>
+          </select>
+        </div>
+
+        <div class="modal-section" id="modal-sec-dpi" style="display:none">
+          <label for="modal-dpi-action">DPI Action</label>
+          <select id="modal-dpi-action" class="form-select" aria-label="Select DPI Action">
+            <option value="UP">DPI +</option>
+            <option value="DOWN">DPI -</option>
+            <option value="CYCLE">DPI Cycle</option>
+          </select>
+        </div>
+
+        <div class="modal-section" id="modal-sec-macro" style="display:none">
+          <div class="grid-2">
+            <div>
+              <label for="modal-macro-slot">Macro Slot</label>
+              <select id="modal-macro-slot" class="form-select" aria-label="Select Macro Slot"></select>
+            </div>
+            <div>
+              <label for="modal-macro-loop">Loop Mode</label>
+              <select id="modal-macro-loop" class="form-select" aria-label="Select Macro Loop Mode">
+                <option value="1">Repeat N Times</option>
+                <option value="2">While Held</option>
+                <option value="4">Toggle (Until Key)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-section" id="modal-sec-key" style="display:none">
+          <label for="modal-key-input">Key / Combination</label>
+          <input type="text" id="modal-key-input" placeholder="e.g. ctrl+c, space, f5" class="form-input mono-text" aria-label="Key Combination">
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="btn-cancel-modal" aria-label="Cancel Remap">Cancel</button>
+        <button type="button" class="btn-primary" id="btn-save-modal" aria-label="Apply Binding">Apply Binding</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Actions -->
+  <footer role="contentinfo">
+    <div class="footer-left">
+      <button type="button" class="btn-secondary btn-sm" id="btn-reload-status" aria-label="Reload Hardware Status">Reload</button>
+      <button type="button" class="btn-secondary btn-sm" id="btn-exit-app" aria-label="Exit Application">Exit</button>
+    </div>
+    <div class="footer-right">
+      <button type="button" class="btn-primary" id="btn-apply-all" aria-label="Apply All Changes to Mouse Flash">Apply All to Mouse Flash</button>
+    </div>
+  </footer>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <script src="/assets/app.js"></script>
+  <script src="/assets/macro.js"></script>
+</body>
+</html>

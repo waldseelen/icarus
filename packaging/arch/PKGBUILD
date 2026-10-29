@@ -1,0 +1,34 @@
+# Maintainer: Bugra <user@local>
+pkgname=icarus
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Universal Linux driver and GUI/CLI utility for Gamepower Icarus Gaming Mouse (Sinowealth 258a:0027)"
+arch=('any')
+url="https://github.com/local/icarus"
+license=('MIT')
+depends=('python>=3.9')
+provides=('icarusctl')
+conflicts=('icarusctl')
+source=("$pkgname-$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+package() {
+    cd "$pkgname-$pkgver"
+
+    # Install standalone executable zipapp
+    install -Dm755 dist/icarus "$pkgdir/usr/bin/icarus"
+    ln -s icarus "$pkgdir/usr/bin/icarusctl"
+
+    # Install udev rule
+    install -Dm644 packaging/udev/70-gamepower-icarus.rules \
+        "$pkgdir/usr/lib/udev/rules.d/70-gamepower-icarus.rules"
+
+    # Install desktop launcher & icon
+    install -Dm644 packaging/desktop/icarus.desktop \
+        "$pkgdir/usr/share/applications/icarus.desktop"
+    install -Dm644 icarus/web/assets/icon.png \
+        "$pkgdir/usr/share/pixmaps/icarus.png"
+
+    # Install documentation
+    install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+}

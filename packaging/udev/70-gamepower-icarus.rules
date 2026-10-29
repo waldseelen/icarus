@@ -1,0 +1,6 @@
+# Gamepower Icarus (Sinowealth 258a:0027): grant the logged-in seat user access
+# to the vendor HID interface so icarusctl runs without sudo.
+# MODE 0660 + GROUP input is a fallback for sessions without systemd-logind (uaccess).
+# Must sort before 73-seat-late.rules: uaccess tags added later are ignored,
+# which is why this file is 70-* rather than 99-*.
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="258a", ATTRS{idProduct}=="0027", TAG+="uaccess", MODE="0660", GROUP="input"

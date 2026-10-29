@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Icarus Gaming Mouse
+GenericName=Gaming Mouse Configuration
+Comment=Driver & Utility for Gamepower Icarus (Sinowealth 258A:0027)
+Exec=icarus
+Icon=icarus
+Terminal=false
+Type=Application
+Categories=Settings;HardwareSettings;Utility;
+Keywords=gamepower;icarus;mouse;dpi;rgb;gaming;
+StartupNotify=true
+StartupWMClass=icarus

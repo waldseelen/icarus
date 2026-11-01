@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from icarus import bkm
-from icarus.config import VALID_DPIS, RgbEffect
+from icarus.config import SUPPORTED_RGB_EFFECTS, VALID_DPIS, RgbEffect
 from icarus.fileconfig import (
     CONFIG_FILE,
     apply_to_mouse,
@@ -53,7 +53,7 @@ PIN_DATA = {
     "K9": {"name": "Sniper / DPI Lock", "x": 11, "y": 260, "desc": "Sniper Paddle"},
 }
 
-RGB_MODES = [e.name for e in RgbEffect]
+RGB_MODES = [e.name for e in SUPPORTED_RGB_EFFECTS]
 
 
 def safe_get_data(package: str, resource: str) -> bytes | None:

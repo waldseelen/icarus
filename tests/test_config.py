@@ -51,7 +51,7 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(cfg.dpi_stages[5].dpi, 1500)
         self.assertEqual(cfg.dpi_stages[6].dpi, 4000)
         self.assertEqual(cfg.dpi_stages[7].dpi, 5000)
-        self.assertEqual(cfg.rgb_effect, RgbEffect.STATIC)
+        self.assertEqual(cfg.rgb_effect, RgbEffect.BREATHING)
         self.assertEqual(cfg.lod, 1)
 
         # Roundtrip serialization
@@ -83,7 +83,7 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(cfg.dpi_stages[5].dpi, 3000)
         self.assertEqual(cfg.dpi_stages[6].dpi, 4000)
         self.assertEqual(cfg.dpi_stages[7].dpi, 5000)
-        self.assertEqual(cfg.rgb_effect, RgbEffect.STREAMING)
+        self.assertEqual(cfg.rgb_effect, RgbEffect.STEADY)
         self.assertEqual(cfg.lod, 0)
 
     def test_channel_order_permutation(self) -> None:
@@ -113,14 +113,21 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(ser[61], 1)  # b_count = 1
         self.assertEqual((ser[62], ser[63], ser[64]), (0, 255, 128))
 
-    def test_reaction_color_sync(self) -> None:
-        data = (DATA_DIR / "p1_b1.bin").read_bytes()
-        cfg = parse_config(data)
-        cfg.rgb_effect = RgbEffect.REACTION
-        cfg.single_color = (255, 50, 100)
-        ser = serialize_config(cfg)
-        self.assertEqual(ser[53], int(RgbEffect.REACTION))
-        self.assertEqual((ser[57], ser[58], ser[59]), (255, 50, 100))
+    def test_sensor_calibration_bytes_preserved(self) -> None:
+        """Ensure serialize_config strictly preserves sensor calibration bytes (104..128, 130..131)."""
+        for fixture_name in ("p1_b1.bin", "p2_b1.bin"):
+            data = (DATA_DIR / fixture_name).read_bytes()
+            cfg = parse_config(data)
+            # Change arbitrary user settings (rate, dpi, led)
+            cfg.polling_rate = 500
+            cfg.rgb_effect = RgbEffect.STEADY
+            cfg.single_color = (12, 34, 56)
+            ser = serialize_config(cfg)
+            # Assert calibration bytes 104..128 (excluding lod at 129) and 130..131 match original byte-exact
+            for i in range(104, 129):
+                self.assertEqual(ser[i], data[i], f"Mismatch at offset {i} for {fixture_name}")
+            self.assertEqual(ser[130], data[130], f"Mismatch at offset 130 for {fixture_name}")
+            self.assertEqual(ser[131], data[131], f"Mismatch at offset 131 for {fixture_name}")
 
 
 if __name__ == "__main__":

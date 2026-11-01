@@ -35,7 +35,6 @@ const RGB_NAMES = {
   STEADY: 'Steady (Sabit Tek Renk)',
   BREATHING: 'Breathing (Nefes Alma)',
   NEON: 'Neon (Spektral Döngü)',
-  REACTION: 'Reaction (Tıklama Tepkisi)',
   OFF: 'LED OFF (Işık Kapalı)',
 };
 

@@ -29,21 +29,20 @@
 
 ## 5. Non-Destructive Calibration Preservation
 
-- Bytes 4..8 and 104..128 contain factory sensor calibration constants for the PixArt PMW3325.
-- Zeroing out these ranges causes erratic tracking and inaccurate LOD behavior.
-- Writers must always base updates on an existing read buffer.
+- Bytes 4..8, 104..128, and 130..131 contain factory sensor calibration constants for the PixArt PMW3325.
+- Zeroing or modifying these ranges (such as overwriting `buf[130]` or writing experimental mode data to `buf[116..125]`) corrupts sensor engine registers, halting relative motion events while button clicks remain functional.
+- Writers must always base updates on an existing read buffer and copy `104..128` (except 129) and `130..131` byte-exact.
 
 ## 6. RGB Mode Masking (`LedMask = 0x1E8`)
 
-- The Sinowealth firmware family defines up to 10 lighting modes, but the Icarus firmware only enables a subset defined by `LedMask = 0x1E8` in `Cfg.ini`.
-- Writing unsupported modes like Tail (`0x03`) or Wave (`0x04`) causes the MCU to either fall back to Streaming or freeze the LED strip on arbitrary un-clocked colors.
-- Only the 6 unmasked modes (`STREAMING`, `STEADY`, `BREATHING`, `NEON`, `REACTION`, `OFF`) must be exposed in UI and validated on writes.
+- The Sinowealth firmware family defines up to 10 lighting modes (0..9 in `text.xml` / `OemDrv.exe @ 0x4367bf`), but the Icarus firmware only enables a subset defined by `LedMask = 0x1E8` in `Cfg.ini`.
+- The UI loop tests `LedMask & (1 << i)` where non-zero bits skip/mask the mode. Bits 3, 5, 6, 7, 8 are masked out.
+- Only the 5 unmasked modes (`STREAMING` = 0, `STEADY` = 1, `BREATHING` = 2, `NEON` = 4, `OFF` = 9) are supported by hardware and exposed in the CLI/GUI.
 
-## 7. Breathing & Reaction Single-Color Synchronization
+## 7. Breathing Single-Color Synchronization
 
 - In Breathing mode (`0x02`), the MCU reads the single breathing color from `b7_colors[0]` (bytes 62..64) and expects `b7_count` (byte 61) to be set to `1`. If bytes 62..64 are zeroed or byte 61 is set to 7, the mouse unexpectedly cycles spectrum colors.
-- In Reaction mode (`0x07`), the MCU reads the click-response color from `single_color` (bytes 57..59).
-- Serializers must mirror the user's selected color to both byte positions when writing these modes.
+- Serializers must mirror the user's selected breathing color to `b7_colors[0]` when writing single-color breathing mode.
 
 ## 8. Hyprland Touchpad Isolation
 

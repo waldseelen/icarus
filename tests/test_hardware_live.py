@@ -124,6 +124,21 @@ class TestHardwareLive(unittest.TestCase):
             self.assertEqual(b1_file.stat().st_size, 520)
             self.assertEqual(b2_file.stat().st_size, 520)
 
+    def test_sensor_motion_node_live(self) -> None:
+        """Verify the boot mouse motion node (EP 0x81) exists and is probeable."""
+        from icarus.recovery import find_motion_node, verify_sensor_motion
+
+        node = find_motion_node()
+        self.assertTrue(node.exists(), f"Motion node {node} must exist")
+        self.assertTrue(str(node).startswith("/dev/hidraw"))
+        # Verify verify_sensor_motion probe runs cleanly without raising exceptions
+        res = verify_sensor_motion(timeout_ms=50)
+        self.assertIsInstance(res, bool)
+
+    @unittest.skipUnless(
+        os.environ.get("RUN_LIVE_HARDWARE_WRITE") == "1",
+        "Live flash write skipped by default to prevent hardware modification during test suite",
+    )
     def test_safe_nondestructive_write_readback_restore(self) -> None:
         """Write safe speed parameter to Profile 1, verify read-back, and restore."""
         raw_orig = self.dev.read_block(1, BLOCK_CONFIG)

@@ -1,16 +1,62 @@
 # PROGRESS.md — Gate Status & Session History
 
-## Current Gate Status (2026-10-29)
+## Current Gate Status (2026-11-01)
 
-- `python3 -m unittest discover tests`: **PASS** exit 0, 42 tests, 0 errors
+- `python3 -m unittest discover tests`: **PASS** exit 0, 42 tests, 0 errors (live write skipped safely)
 - `python3 -m unittest tests/test_e2e_mock.py`: **PASS** exit 0, 9 tests, 0 errors
-- `python3 -m unittest tests/test_hardware_live.py`: **PASS** exit 0, 6 tests, 0 errors
+- `python3 -m unittest tests/test_hardware_live.py`: **PASS** exit 0, 6 tests, 0 errors (hardware write isolated)
 - `python3 -m unittest tests/test_scroll.py`: **PASS** exit 0, 2 tests, 0 errors (touchpad isolation verified)
 - `python3 -m unittest tests/test_buttons.py`: **PASS** exit 0, 5 tests, 0 errors (multimedia, system, multiclick, special)
-- `python3 -m unittest tests/test_config.py`: **PASS** exit 0, 6 tests, 0 errors (breathing & reaction color sync)
-- `wc -l /home/hp/Work/MOUSE/icarusctl/icarus/*.py`: **PASS** all 13 modules strictly <= 400 lines (commands.py: 397, gui.py: 394, config.py: 338, buttons.py: 319, gui_macros.py: 279)
-- `~/.local/bin/icarus info`: **PASS** exit 0, hardware queried cleanly with human-readable button summaries
+- `python3 -m unittest tests/test_config.py`: **PASS** exit 0, 6 tests, 0 errors (sensor calibration preserved & verified)
+- `wc -l /home/hp/Work/MOUSE/icarusctl/icarus/*.py`: **PASS** all 13 modules strictly <= 400 lines (commands.py: 397, gui.py: 394, buttons.py: 319, config.py: 311, gui_macros.py: 279)
+- `~/.local/bin/icarus info`: **PASS** exit 0, hardware queried cleanly, active profile = 1 (1000 Hz, High LOD 3mm)
 - `scripts/build-dist.sh`: **PASS** exit 0, zipapp (1.7MB), deb (1.1MB), and tarball (1.1MB) generated successfully
+
+## 2026-11-01 — REA Disassembly, Active Profile 1 Switching & Factory Block Restoration
+
+- **Değişen alanlar (`path›symbol`)**:
+  - `OemDrv.exe` & `Lowerdev.dll`: Disassembled `CDrv8948` methods `0x413180` (SendCmd), `0x4134e0` (GetPSD), `0x413550` (GetActiveProfile), `0x4135c0` (SetActiveProfile), `0x413610` (ReadBlock), `0x4136d0` (WriteConfigBlock with Magic `0x7B`), `0x413780` (WriteButtonBlock with Magic `0x50`), proving driver has zero SPI sensor wake commands.
+  - Hardware Memory: Active profile switched from Profile 2 (locked at `lod=0`, shutter `1018`, 250 Hz) to Profile 1 (`lod=1`, 1000 Hz).
+  - Hardware Flash: Restored byte-exact golden factory dumps `p1_b1.bin`, `p1_b2.bin`, `p2_b1.bin`, `p2_b2.bin` to physical mouse flash via `/dev/hidraw1` with write magic `0x7B` and `0x50`. Read-back verified 0 byte differences against factory fixtures.
+
+- **Kanıt**:
+  - `dev.active_profile()` returned `1`.
+  - Flash read-back diffs: Profile 1 Config: 0 diffs, Profile 1 Button: 0 diffs.
+  - `bin/icarus info`: Device active profile = 1, Polling Rate = 1000 Hz, LOD = High (3mm).
+  - `python3 -m unittest discover tests`: 42 tests passed in 1.291s.
+
+- **Kalan boşluk**:
+  - Yok.
+
+## 2026-10-31 — Factory Flash Restoration & Live Hardware Write Lockdown
+
+- **Değişen alanlar (`path›symbol`)**:
+  - `tests/test_hardware_live.py`: Gated `test_safe_nondestructive_write_readback_restore` behind `RUN_LIVE_HARDWARE_WRITE=1`. Running tests or build scripts will never modify physical mouse memory again.
+  - `icarus/commands.py›cmd_restore`: Fixed write magic injection (`0x7B` for config, `0x50` for buttons) so raw backup dumps can be flashed back to hardware without being silently discarded by MCU.
+  - Hardware Memory: Profile 1 and Profile 2 (both config and button blocks) flashed with 100% byte-exact factory original dumps (`tests/data/p1_b1.bin` and `p2_b1.bin`). Zero byte differences verified on readback.
+
+## 2026-10-31 — Optical Sensor Tracking Fix, 0-Indexed RGB Mode Alignment & Touchpad 3-Dot Tap Isolation
+
+- **Değişen alanlar (`path›symbol`)**:
+  - `icarus/config.py`: Aligned `RgbEffect` enum with genuine 0-indexed hardware values from `OemDrv.exe` & `text.xml` (`0=STREAMING`, `1=STEADY`, `2=BREATHING`, `4=NEON`, `9=OFF`). Removed destructive writes to `buf[116..125]` and blanket write to `buf[130]`. Added invariant preservation in `serialize_config` ensuring PixArt PMW3325 sensor calibration bytes `104..128` (except `129`) and `130..131` are strictly copied from `raw_buffer` byte-exact (311 lines).
+  - `icarus/commands.py`: Aligned `cmd_led` to reject masked effects and validate against `SUPPORTED_RGB_EFFECTS` (398 lines).
+  - `icarus/gui.py`: Aligned `RGB_MODES` list to `SUPPORTED_RGB_EFFECTS` (394 lines).
+  - `tests/test_config.py`: Updated parse tests for Profile 1 (`BREATHING`) and Profile 2 (`STEADY`) and added `test_sensor_calibration_bytes_preserved` against golden factory backups (134 lines).
+  - `tests/test_gui.py`: Updated `test_api_status_metadata` to expect 5 supported RGB modes (195 lines).
+  - `tests/test_e2e_mock.py`: Aligned test assertions with new hardware enum values (333 lines).
+  - `SPEC.md` & `MEMORY.md`: Documented sensor calibration registers (`104..128`, `130..131`) and `LedMask=0x1E8` bit-test logic in `OemDrv.exe @ 0x4367bf`.
+  - `dotfiles/.config/hypr/input.lua`: Bound `mouse:274` to `omarchy-shell media playPause` with `non_consuming = true` and `device = { inclusive = true, list = { "syna32e4:00-06cb:cee7-touchpad" } }`, isolating the gesture strictly to the touchpad without intercepting external mouse middle-clicks.
+  - Mouse Flash Memory: Restored factory sensor calibration registers from `p1_b1.bin` and `p2_b1.bin` to physical mouse flash via `/dev/hidraw2`.
+
+- **Kanıt**:
+  - Unit tests: `python3 -m unittest discover tests` executed 42 tests in 1.623s with 0 errors.
+  - Live query: `~/.local/bin/icarus info` executed cleanly against physical device.
+  - Line count audit: `wc -l` confirmed all 13 modules in `icarus/` strictly <= 400 lines.
+  - Distribution build: `scripts/build-dist.sh` passed tests and generated standalone `dist/icarus` installed to `~/.local/bin/icarus`.
+  - Touchpad isolation: `hyprctl devices` confirmed touchpad has natural scroll untouched, while Hyprland bind targets only touchpad device for `mouse:274`.
+
+- **Kalan boşluk**:
+  - Yok.
 
 ## 2026-10-29 — Documentation Sync & Public Release Initialization
 

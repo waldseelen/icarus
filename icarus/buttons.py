@@ -16,10 +16,18 @@ REPORT_DATA = 0x04
 # Physical button to hardware slot routing:
 # In hardware wiring (Cfg.ini), physical K4 (Forward) is wired to Pin 5 (Slot 5),
 # and physical K5 (Back) is wired to Pin 4 (Slot 4).
-PHYSICAL_TO_SLOT = {1: 1, 2: 2, 3: 3, 4: 5, 5: 4, 6: 6, 7: 7, 8: 8, 9: 9}
-SLOT_TO_PHYSICAL = {1: 1, 2: 2, 3: 3, 4: 5, 5: 4, 6: 6, 7: 7, 8: 8, 9: 9}
+PHYSICAL_TO_SLOT = {
+    1: 1, 2: 2, 3: 3, 4: 5, 5: 4, 6: 6, 7: 7, 8: 8, 9: 9,
+    10: 10, 11: 11, 12: 12, 13: 13, 14: 14, 15: 15,
+    16: 16, 17: 17, 18: 18, 19: 19, 20: 20,
+}
+SLOT_TO_PHYSICAL = {
+    1: 1, 2: 2, 3: 3, 4: 5, 5: 4, 6: 6, 7: 7, 8: 8, 9: 9,
+    10: 10, 11: 11, 12: 12, 13: 13, 14: 14, 15: 15,
+    16: 16, 17: 17, 18: 18, 19: 19, 20: 20,
+}
 
-# Physical button labels for Gamepower Icarus (9 buttons)
+# Physical button labels for Gamepower Icarus (20 slots)
 BUTTON_NAMES = {
     1: "K1 (Left Click)",
     2: "K2 (Right Click)",
@@ -30,6 +38,17 @@ BUTTON_NAMES = {
     7: "K7 (DPI Down)",
     8: "K8 (Fire Key)",
     9: "K9 (Sniper / DPI Lock)",
+    10: "K10 (Extended Slot 10)",
+    11: "K11 (Extended Slot 11)",
+    12: "K12 (Extended Slot 12)",
+    13: "K13 (Extended Slot 13)",
+    14: "K14 (Extended Slot 14)",
+    15: "K15 (Extended Slot 15)",
+    16: "K16 (Extended Slot 16)",
+    17: "K17 (Extended Slot 17)",
+    18: "K18 (Extended Slot 18)",
+    19: "K19 (Extended Slot 19)",
+    20: "K20 (Extended Slot 20)",
 }
 
 # Vendor action codes
@@ -203,16 +222,58 @@ class ButtonBinding:
         return f"{self.btype.name}({self.data0:#02x},{self.data1:#02x})"
 
 
-def make_multimedia_binding(slot: int, action: str) -> ButtonBinding:
+def make_multimedia_binding(
+    slot_or_cat: int,
+    action_or_code: str | int | tuple[int, int, int] = "play_pause",
+    code: int | None = None,
+) -> ButtonBinding:
     """Create multimedia or consumer action binding."""
-    key = MULTIMEDIA_ACTIONS.get(action.lower(), (0x01, 0x00, 0x00))
-    return ButtonBinding(slot=slot, btype=ButtonType.MULTIMEDIA, data0=key[0], data1=key[1], data2=key[2])
+    if code is not None:
+        slot = slot_or_cat
+        cat = int(action_or_code)
+        d = [0, 0, 0]
+        if 0 <= cat <= 2:
+            d[cat] = code
+        return ButtonBinding(slot=slot, btype=ButtonType.MULTIMEDIA, data0=d[0], data1=d[1], data2=d[2])
+
+    if isinstance(action_or_code, str):
+        key = MULTIMEDIA_ACTIONS.get(action_or_code.lower(), (0x01, 0x00, 0x00))
+        return ButtonBinding(slot=slot_or_cat, btype=ButtonType.MULTIMEDIA, data0=key[0], data1=key[1], data2=key[2])
+
+    if isinstance(action_or_code, (tuple, list)) and len(action_or_code) >= 3:
+        return ButtonBinding(
+            slot=slot_or_cat,
+            btype=ButtonType.MULTIMEDIA,
+            data0=action_or_code[0],
+            data1=action_or_code[1],
+            data2=action_or_code[2],
+        )
+
+    if isinstance(action_or_code, int):
+        cat = slot_or_cat
+        cd = action_or_code
+        d = [0, 0, 0]
+        if 0 <= cat <= 2:
+            d[cat] = cd
+        return ButtonBinding(slot=1, btype=ButtonType.MULTIMEDIA, data0=d[0], data1=d[1], data2=d[2])
+
+    return ButtonBinding(slot=slot_or_cat, btype=ButtonType.MULTIMEDIA, data0=0x08, data1=0, data2=0)
 
 
-def make_special_binding(slot: int, action: str | int) -> ButtonBinding:
+def make_special_binding(
+    slot_or_code: int | str,
+    action: str | int | None = None,
+) -> ButtonBinding:
     """Create hardware toggle binding (profile, polling rate, lighting)."""
-    code = SPECIAL_HW_ACTIONS.get(action.lower()) if isinstance(action, str) else int(action)
-    return ButtonBinding(slot=slot, btype=ButtonType.SPECIAL, data0=code or 0x01)
+    if action is not None:
+        code = SPECIAL_HW_ACTIONS.get(action.lower()) if isinstance(action, str) else int(action)
+        return ButtonBinding(slot=int(slot_or_code), btype=ButtonType.SPECIAL, data0=code or 0x01)
+
+    if isinstance(slot_or_code, str):
+        code = SPECIAL_HW_ACTIONS.get(slot_or_code.lower(), 0x01)
+        return ButtonBinding(slot=1, btype=ButtonType.SPECIAL, data0=code)
+
+    return ButtonBinding(slot=1, btype=ButtonType.SPECIAL, data0=int(slot_or_code))
 
 
 def make_multiclick_binding(slot: int, count: int = 2) -> ButtonBinding:

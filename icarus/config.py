@@ -21,35 +21,52 @@ RATE_TO_RAW = {125: 1, 250: 2, 500: 3, 1000: 4}
 
 
 class RgbEffect(IntEnum):
-    OFF = 0
-    STREAMING = 1  # Colorful Streaming
-    STEADY = 2  # Steady single color
-    STATIC = 2  # Backward compatibility alias
-    BREATHING = 3  # Breathing cycle
-    BREATHING7 = 3  # Backward compatibility alias
-    COLORFUL_TAIL = 4  # Colorful Tail
-    TAIL = 4  # Backward compatibility alias
-    NEON = 5  # Neon spectral color cycle
-    COLORFUL_STEADY = 6  # 8-zone Colorful Steady
-    CONSTANT = 6  # Backward compatibility alias
-    FLICKER = 7  # 2-color flicker
-    RAVE = 7  # Backward compatibility alias
-    STARS_TWINKLE = 8  # Stars twinkle
-    RANDOM = 8  # Backward compatibility alias
-    WAVE = 9  # Wave
-    REACTION = 10  # Reaction burst on click
-    BREATHING1 = 10  # Backward compatibility alias
+    STREAMING = 0  # Colorful Streaming (tc_ms_led1)
+    STEADY = 1  # Steady single color (tc_ms_led2)
+    STATIC = 1  # Backward compatibility alias
+    BREATHING = 2  # Breathing cycle (tc_ms_led3)
+    BREATHING7 = 2  # Backward compatibility alias
+    COLORFUL_TAIL = 3  # Colorful Tail (tc_ms_led4, masked by LedMask)
+    TAIL = 3  # Backward compatibility alias
+    NEON = 4  # Neon spectral color cycle (tc_ms_led5)
+    COLORFUL_STEADY = 5  # 8-zone Colorful Steady (tc_ms_led6, masked by LedMask)
+    CONSTANT = 5  # Backward compatibility alias
+    FLICKER = 6  # 2-color flicker (tc_ms_led7, masked by LedMask)
+    RAVE = 6  # Backward compatibility alias
+    STARS_TWINKLE = 7  # Stars twinkle (tc_ms_led8, masked by LedMask)
+    RANDOM = 7  # Backward compatibility alias
+    WAVE = 8  # Wave (tc_ms_led9, masked by LedMask)
+    OFF = 9  # LED OFF (tc_ms_led10)
 
 
 # Genuine hardware-supported modes unmasked by LedMask=0x1E8 in Cfg.ini
 SUPPORTED_RGB_EFFECTS: tuple[RgbEffect, ...] = (
-    RgbEffect.OFF,
     RgbEffect.STREAMING,
     RgbEffect.STEADY,
     RgbEffect.BREATHING,
     RgbEffect.NEON,
-    RgbEffect.REACTION,
+    RgbEffect.OFF,
 )
+
+LED_MASK = 0x1E8
+
+SUPPORTED_LED_MODES: dict[int, str] = {
+    0: "streaming",
+    1: "steady",
+    2: "breathing",
+    4: "neon",
+    9: "off",
+}
+
+
+def is_led_mode_supported(mode: int | RgbEffect) -> bool:
+    """Check if LED mode is supported and unmasked by LED_MASK (0x1E8)."""
+    val = int(mode)
+    if val < 0 or val > 9:
+        return False
+    if LED_MASK & (1 << val):
+        return False
+    return val in SUPPORTED_LED_MODES
 
 
 # PixArt PMW3325 57 discrete hardware steps: 400..5000 (step 100), 5500..10000 (step 500)
@@ -212,18 +229,6 @@ def parse_config(data: bytes | bytearray, channel_order: str = "RGB") -> MouseCo
     elif effect == RgbEffect.COLORFUL_STEADY:
         speed = 2
         brightness = max(1, min(4, (data[85] >> 4) & 0x0F or 4))
-    elif effect == RgbEffect.FLICKER:
-        speed = max(1, min(3, data[116] & 0x0F or 2))
-        brightness = max(1, min(4, (data[116] >> 4) & 0x0F or 4))
-    elif effect == RgbEffect.STARS_TWINKLE:
-        speed = max(1, min(3, data[123] & 0x0F or 2))
-        brightness = max(1, min(4, (data[123] >> 4) & 0x0F or 4))
-    elif effect == RgbEffect.WAVE:
-        speed = max(1, min(3, data[124] & 0x0F or 2))
-        brightness = max(1, min(4, (data[124] >> 4) & 0x0F or 4))
-    elif effect == RgbEffect.REACTION:
-        speed = max(1, min(3, data[125] & 0x0F or 2))
-        brightness = 4
     else:  # OFF
         speed = 2
         brightness = 4
@@ -285,20 +290,14 @@ def serialize_config(cfg: MouseConfig) -> bytearray:
     bri = cfg.rgb_brightness & 0x0F
     spd = cfg.rgb_speed & 0x0F
 
-    # Dedicated per-mode register preservation
-    if cfg.rgb_effect == RgbEffect.OFF:
-        buf[130] = 0x01
-    else:
-        buf[130] = 0x00
-
     if cfg.rgb_effect == RgbEffect.STREAMING:
         buf[54] = (bri << 4) | spd
         buf[55] = 1 if cfg.rgb_direction else 0
-    elif cfg.rgb_effect == RgbEffect.STEADY:
+    elif cfg.rgb_effect in (RgbEffect.STEADY, RgbEffect.STATIC):
         buf[56] = (bri << 4) | (buf[56] & 0x0F)
         hw_sc = permute_color_to_hw(cfg.single_color, cfg.channel_order)
         buf[57], buf[58], buf[59] = hw_sc
-    elif cfg.rgb_effect == RgbEffect.BREATHING:
+    elif cfg.rgb_effect in (RgbEffect.BREATHING, RgbEffect.BREATHING7):
         buf[60] = (bri << 4) | spd
         colors = list(cfg.breathing_colors) if cfg.breathing_colors else [cfg.single_color]
         if len(colors) == 1 and cfg.single_color:
@@ -308,31 +307,25 @@ def serialize_config(cfg: MouseConfig) -> bytearray:
         for i, c in enumerate(colors[:b_len]):
             hw_bc = permute_color_to_hw(c, cfg.channel_order)
             buf[62 + i * 3 : 65 + i * 3] = bytes(hw_bc)
-    elif cfg.rgb_effect == RgbEffect.COLORFUL_TAIL:
+    elif cfg.rgb_effect in (RgbEffect.COLORFUL_TAIL, RgbEffect.TAIL):
         buf[83] = (bri << 4) | spd
     elif cfg.rgb_effect == RgbEffect.NEON:
         buf[84] = (bri << 4) | spd
-    elif cfg.rgb_effect == RgbEffect.COLORFUL_STEADY:
+    elif cfg.rgb_effect in (RgbEffect.COLORFUL_STEADY, RgbEffect.CONSTANT):
         buf[85] = (bri << 4) | (buf[85] & 0x0F)
         if cfg.zone_colors:
             for i, c in enumerate(cfg.zone_colors[:8]):
                 hw_zc = permute_color_to_hw(c, cfg.channel_order)
                 buf[86 + i * 3 : 89 + i * 3] = bytes(hw_zc)
-    elif cfg.rgb_effect == RgbEffect.FLICKER:
-        buf[116] = (bri << 4) | spd
-        if cfg.flicker_colors:
-            for i, c in enumerate(cfg.flicker_colors[:2]):
-                hw_fc = permute_color_to_hw(c, cfg.channel_order)
-                buf[117 + i * 3 : 120 + i * 3] = bytes(hw_fc)
-    elif cfg.rgb_effect == RgbEffect.STARS_TWINKLE:
-        buf[123] = (bri << 4) | spd
-    elif cfg.rgb_effect == RgbEffect.WAVE:
-        buf[124] = (bri << 4) | spd
-    elif cfg.rgb_effect == RgbEffect.REACTION:
-        buf[125] = (buf[125] & 0xF0) | spd
-        hw_sc = permute_color_to_hw(cfg.single_color, cfg.channel_order)
-        buf[57], buf[58], buf[59] = hw_sc
 
     buf[129] = 1 if cfg.lod == 1 else 0
+
+    # Invariant: Sensor calibration constants (104..128 except 129) and reserved (130..131)
+    # must never be modified by host writes to prevent freezing the optical sensor.
+    if hasattr(cfg, "raw_buffer") and len(cfg.raw_buffer) == 520:
+        for i in range(104, 129):
+            buf[i] = cfg.raw_buffer[i]
+        buf[130] = cfg.raw_buffer[130]
+        buf[131] = cfg.raw_buffer[131]
 
     return buf

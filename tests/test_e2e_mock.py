@@ -79,90 +79,46 @@ class TestRgbModesReportGeneration(unittest.TestCase):
         cfg.rgb_brightness = 4
         cfg.rgb_speed = 2
 
-        # Mode 0: LED OFF (B53=0, B130=0x01)
-        cfg.rgb_effect = RgbEffect.OFF
+        # Mode 0: Colorful Streaming (B54=bri/spd, B55=dir)
+        cfg.rgb_effect = RgbEffect.STREAMING
+        cfg.rgb_direction = 1
         buf = serialize_config(cfg)
         self.assertEqual(buf[0], 0x04)
         self.assertEqual(buf[1], 0x11)
         self.assertEqual(buf[3], 0x7B)
         self.assertEqual(buf[53], 0x00)
-        self.assertEqual(buf[130], 0x01)
-
-        # Mode 1: Colorful Streaming (B54=bri/spd, B55=dir, B130=0x00)
-        cfg.rgb_effect = RgbEffect.STREAMING
-        cfg.rgb_direction = 1
-        buf = serialize_config(cfg)
-        self.assertEqual(buf[53], 0x01)
         self.assertEqual(buf[54], (4 << 4) | 2)
         self.assertEqual(buf[55], 1)
-        self.assertEqual(buf[130], 0x00)
 
-        # Mode 2: Steady (B56=bri, B57..59=RGB)
+        # Mode 1: Steady (B56=bri, B57..59=RGB)
         cfg.rgb_effect = RgbEffect.STEADY
         cfg.single_color = (255, 128, 64)
         buf = serialize_config(cfg)
-        self.assertEqual(buf[53], 0x02)
+        self.assertEqual(buf[53], 0x01)
         self.assertEqual(buf[56] >> 4, 4)
         self.assertEqual((buf[57], buf[58], buf[59]), (255, 128, 64))
 
-        # Mode 3: Breathing (B60=bri/spd, B61=count, B62..82=colors)
+        # Mode 2: Breathing (B60=bri/spd, B61=count, B62..82=colors)
         cfg.rgb_effect = RgbEffect.BREATHING
         cfg.breathing_colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
         buf = serialize_config(cfg)
-        self.assertEqual(buf[53], 0x03)
+        self.assertEqual(buf[53], 0x02)
         self.assertEqual(buf[60], (4 << 4) | 2)
         self.assertEqual(buf[61], 3)
         self.assertEqual(buf[62:65], bytes([255, 0, 0]))
         self.assertEqual(buf[65:68], bytes([0, 255, 0]))
         self.assertEqual(buf[68:71], bytes([0, 0, 255]))
 
-        # Mode 4: Colorful Tail (B83=bri/spd)
-        cfg.rgb_effect = RgbEffect.COLORFUL_TAIL
-        buf = serialize_config(cfg)
-        self.assertEqual(buf[53], 0x04)
-        self.assertEqual(buf[83], (4 << 4) | 2)
-
-        # Mode 5: Neon (B84=bri/spd)
+        # Mode 4: Neon (B84=bri/spd)
         cfg.rgb_effect = RgbEffect.NEON
         buf = serialize_config(cfg)
-        self.assertEqual(buf[53], 0x05)
+        self.assertEqual(buf[53], 0x04)
         self.assertEqual(buf[84], (4 << 4) | 2)
 
-        # Mode 6: Colorful Steady (B85=bri, B86..109=8 zones)
-        cfg.rgb_effect = RgbEffect.COLORFUL_STEADY
-        cfg.zone_colors = [(i * 10, i * 20, i * 30) for i in range(8)]
-        buf = serialize_config(cfg)
-        self.assertEqual(buf[53], 0x06)
-        self.assertEqual(buf[85] >> 4, 4)
-        for i in range(8):
-            self.assertEqual(buf[86 + i * 3 : 89 + i * 3], bytes(cfg.zone_colors[i]))
-
-        # Mode 7: Flicker (B116=bri/spd, B117..122=2 colors)
-        cfg.rgb_effect = RgbEffect.FLICKER
-        cfg.flicker_colors = [(10, 20, 30), (40, 50, 60)]
-        buf = serialize_config(cfg)
-        self.assertEqual(buf[53], 0x07)
-        self.assertEqual(buf[116], (4 << 4) | 2)
-        self.assertEqual(buf[117:120], bytes([10, 20, 30]))
-        self.assertEqual(buf[120:123], bytes([40, 50, 60]))
-
-        # Mode 8: Stars Twinkle (B123=bri/spd)
-        cfg.rgb_effect = RgbEffect.STARS_TWINKLE
-        buf = serialize_config(cfg)
-        self.assertEqual(buf[53], 0x08)
-        self.assertEqual(buf[123], (4 << 4) | 2)
-
-        # Mode 9: Wave (B124=bri/spd)
-        cfg.rgb_effect = RgbEffect.WAVE
+        # Mode 9: LED OFF (B53=9)
+        cfg.rgb_effect = RgbEffect.OFF
         buf = serialize_config(cfg)
         self.assertEqual(buf[53], 0x09)
-        self.assertEqual(buf[124], (4 << 4) | 2)
-
-        # Mode 10: Reaction (B125=spd)
-        cfg.rgb_effect = RgbEffect.REACTION
-        buf = serialize_config(cfg)
-        self.assertEqual(buf[53], 0x0A)
-        self.assertEqual(buf[125] & 0x0F, 2)
 
     def test_dedicated_register_slices_preserved(self) -> None:
         """Switching active mode must not overwrite parameters of other modes."""
@@ -179,14 +135,14 @@ class TestRgbModesReportGeneration(unittest.TestCase):
         cfg = _make_base_config()
         cfg.raw_buffer = bytearray(raw)
 
-        # Switch to Mode 5 (Neon) with new speed 1, brightness 2
+        # Switch to Mode 4 (Neon) with new speed 1, brightness 2
         cfg.rgb_effect = RgbEffect.NEON
         cfg.rgb_speed = 1
         cfg.rgb_brightness = 2
         ser = serialize_config(cfg)
 
-        self.assertEqual(ser[53], 0x05)
-        self.assertEqual(ser[84], (2 << 4) | 1)  # Mode 5 updated
+        self.assertEqual(ser[53], 0x04)
+        self.assertEqual(ser[84], (2 << 4) | 1)  # Mode 4 updated
         # Slices for all other modes remain intact
         self.assertEqual((ser[54], ser[55]), (0x31, 0x01))
         self.assertEqual(ser[57:60], b"\x11\x22\x33")

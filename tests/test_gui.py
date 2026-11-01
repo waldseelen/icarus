@@ -108,7 +108,7 @@ class TestGuiServer(unittest.TestCase):
             self.assertIn("valid_dpis", data)
             self.assertEqual(len(data["valid_dpis"]), 57)
             self.assertIn("rgb_modes", data)
-            self.assertEqual(len(data["rgb_modes"]), 11)
+            self.assertEqual(len(data["rgb_modes"]), 5)
             self.assertIn("pins", data)
             self.assertIn("K4", data["pins"])
             self.assertIn("K5", data["pins"])

@@ -54,19 +54,20 @@ def build_parser() -> argparse.ArgumentParser:
     p_lod.add_argument("mode", choices=["low", "high", "2mm", "3mm"], help="LOD mode")
 
     p_led = subs.add_parser("led", help="Configure RGB lighting")
-    p_led.add_argument("effect", help="Effect name (streaming, steady, breathing, neon, off, etc.)")
+    p_led.add_argument("effect", nargs="?", default=None, help="Effect name (streaming, steady, breathing, neon, off)")
+    p_led.add_argument("--list", action="store_true", help="List supported LED modes")
     p_led.add_argument("--brightness", type=int, choices=[1, 2, 3, 4], help="Brightness (1..4)")
     p_led.add_argument("--speed", type=int, choices=[1, 2, 3], help="Animation speed (1..3)")
     p_led.add_argument("--direction", choices=["0", "1", "forward", "backward", "fwd", "back"], help="Wave direction")
     p_led.add_argument("--color", type=str, help="Color for static/steady mode (e.g. 255,0,0)")
-    p_led.add_argument("--flicker-colors", type=str, help="2 RGB colors for flicker mode (e.g. '0,255,0;0,0,106')")
+    p_led.add_argument("--flicker-colors", type=str, help="2 RGB colors for flicker mode")
     p_led.add_argument("--zone-colors", type=str, help="8 zone RGB colors for colorful steady")
     p_led.add_argument("--breathing-colors", type=str, help="Up to 7 breathing RGB colors")
 
     p_bind = subs.add_parser("bind", help="Remap button action")
-    p_bind.add_argument("slot", type=int, choices=range(1, 10), help="Physical button K1..K9")
-    p_bind.add_argument("action", help="Action (left, right, middle, back, forward, dpi+, dpi-, fire, sniper, key, macro)")
-    p_bind.add_argument("val", nargs="?", help="Key name, macro ID, sniper stage, or fire repeats")
+    p_bind.add_argument("slot", type=int, choices=range(1, 21), help="Physical button K1..K20")
+    p_bind.add_argument("action", help="Action (left, right, middle, back, forward, dpi+, dpi-, fire, sniper, media, special, double, triple, key, macro)")
+    p_bind.add_argument("val", nargs="?", help="Key name, macro ID, sniper stage, fire repeats, or media action")
     p_bind.add_argument("--repeat", type=int, default=None, help="Repeat count for fire key or macro")
     p_bind.add_argument("--loop-mode", type=int, default=None, help="Macro loop mode: 1=Repeat, 2=Hold, 4=Toggle")
 
@@ -75,9 +76,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_mac.add_argument("keys", nargs="+", help="Sequence of keys (e.g. a b c enter)")
     p_mac.add_argument("--delay", type=int, default=15, help="Delay in ms per key event")
 
-    subs.add_parser("backup", help="Backup mouse flash to ~/.local/state/icarus")
+    subs.add_parser("backup", help="Backup mouse flash to ~/.local/state/icarusctl/")
     p_rst = subs.add_parser("restore", help="Restore mouse flash from backup folder")
     p_rst.add_argument("dir", help="Path to backup folder")
+
+    p_reset = subs.add_parser("reset", aliases=["recover"], help="Factory reset hardware and wake PMW3325 sensor")
+    p_reset.add_argument("--skip-motion-check", action="store_true", help="Skip motion streaming verification")
 
     p_scr = subs.add_parser("scroll", help="Get or set mouse scroll wheel speed factor")
     p_scr.add_argument("factor", type=float, nargs="?", help="Scroll factor (e.g. 0.5, 1.0, 1.5, 2.0)")
@@ -113,6 +117,8 @@ def main(argv: list[str] | None = None) -> int:
         "macro": commands.cmd_macro,
         "backup": commands.cmd_backup,
         "restore": commands.cmd_restore,
+        "reset": commands.cmd_reset,
+        "recover": commands.cmd_reset,
         "scroll": commands.cmd_scroll,
     }
 

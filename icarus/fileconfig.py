@@ -11,6 +11,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from icarus.backup import ensure_backup
 from icarus.buttons import (
     PHYSICAL_TO_SLOT,
     ButtonBinding,
@@ -94,7 +95,7 @@ def mouse_to_dict(dev: Device) -> dict[str, Any]:
                     "data1": tbl.buttons[PHYSICAL_TO_SLOT[k] - 1].data1,
                     "data2": tbl.buttons[PHYSICAL_TO_SLOT[k] - 1].data2,
                 }
-                for k in range(1, 10)
+                for k in range(1, 21)
             },
         }
         data["profiles"][str(p)] = prof_dict
@@ -122,6 +123,7 @@ def pull_from_mouse(dev: Device, path: Path = CONFIG_FILE) -> Path:
 
 def apply_to_mouse(dev: Device, path: Path = CONFIG_FILE) -> list[str]:
     """Read JSON configuration and flash to mouse hardware memory."""
+    ensure_backup(dev)
     d = load_config_file(path)
     logs: list[str] = []
 
